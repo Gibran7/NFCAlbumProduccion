@@ -34,12 +34,8 @@ export default function App() {
       if (!isMounted) return;
       updateAccess(session);
       if (event === 'SIGNED_OUT') {
-        clearUrlTokens();
-        ActiveAlbumSession.clearToken();
-        setCurrentAlbum(null);
-        setAccessKey('');
-        setRouteError('');
-        setIsLoading(false);
+        setIsAuthenticated(false);
+        setIsAdmin(false);
         setShowAdminLogin(false);
       }
     });
@@ -61,7 +57,6 @@ export default function App() {
     const loadAdminAlbums = async () => {
       if (isSupabaseConfigured() && !isAdmin) {
         setAlbums([]);
-        setPhotosByAlbum({});
         return;
       }
 
@@ -74,7 +69,7 @@ export default function App() {
         for (const album of fetchedAlbums) {
           photoCounts[album.id] = await PhotoService.getPhotos(album.id, album.access_key);
         }
-        if (isMounted) setPhotosByAlbum(photoCounts);
+        if (isMounted) setPhotosByAlbum(prev => ({ ...prev, ...photoCounts }));
       } catch (error) {
         console.error('Error al cargar los álbumes de administración:', error);
         if (isMounted) setRouteError('No se pudieron cargar los álbumes. Revisa tu sesión de administrador.');

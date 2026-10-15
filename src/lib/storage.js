@@ -15,6 +15,15 @@ const DEFAULT_ATLIXCO_ALBUM = {
   access_key: createLocalAccessKey()
 };
 
+const DEFAULT_CHIPIL_ALBUM = {
+  id: 'e7e8f5c9-b310-40ad-8d2b-13eaa25cd5db',
+  title: 'Chipil',
+  emoji: '📸',
+  cover_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=800&q=80',
+  created_at: '2026-10-15T05:40:56.633+00:00',
+  access_key: '9374d047-f42f-44a0-8f65-d524e1189ee5'
+};
+
 const DEFAULT_ATLIXCO_PHOTOS = [
   {
     id: 'photo-atlixco-1',
@@ -122,23 +131,22 @@ export const LocalStorageManager = {
   getAlbums() {
     try {
       const stored = localStorage.getItem('nfc_albums_data');
-      if (!stored) {
-        const initialAlbums = [DEFAULT_ATLIXCO_ALBUM];
-        localStorage.setItem('nfc_albums_data', JSON.stringify(initialAlbums));
+      let albums = stored ? JSON.parse(stored) : null;
+      if (!Array.isArray(albums) || albums.length === 0) {
+        albums = [DEFAULT_ATLIXCO_ALBUM, DEFAULT_CHIPIL_ALBUM];
+        localStorage.setItem('nfc_albums_data', JSON.stringify(albums));
         this.savePhotosForAlbum(DEFAULT_ATLIXCO_ALBUM.id, DEFAULT_ATLIXCO_PHOTOS);
-        return initialAlbums;
+        return albums;
       }
-      const albums = JSON.parse(stored);
-      if (!albums || albums.length === 0) {
-        const initialAlbums = [DEFAULT_ATLIXCO_ALBUM];
-        localStorage.setItem('nfc_albums_data', JSON.stringify(initialAlbums));
-        this.savePhotosForAlbum(DEFAULT_ATLIXCO_ALBUM.id, DEFAULT_ATLIXCO_PHOTOS);
-        return initialAlbums;
+      // Garantizar que los álbumes predeterminados existan en la lista local
+      if (!albums.some(a => a.id === DEFAULT_CHIPIL_ALBUM.id || a.access_key === DEFAULT_CHIPIL_ALBUM.access_key)) {
+        albums.push(DEFAULT_CHIPIL_ALBUM);
+        localStorage.setItem('nfc_albums_data', JSON.stringify(albums));
       }
       return albums;
     } catch (e) {
       console.error('Error reading local albums:', e);
-      return [DEFAULT_ATLIXCO_ALBUM];
+      return [DEFAULT_ATLIXCO_ALBUM, DEFAULT_CHIPIL_ALBUM];
     }
   },
 
@@ -318,27 +326,41 @@ const ACTIVE_ALBUM_TOKEN_KEY = 'nfc_active_album_access_key';
 export const ActiveAlbumSession = {
   getToken() {
     try {
-      return localStorage.getItem(ACTIVE_ALBUM_TOKEN_KEY) || '';
-    } catch (e) {
-      return '';
-    }
+      const fromLocal = localStorage.getItem(ACTIVE_ALBUM_TOKEN_KEY);
+      if (fromLocal) return fromLocal.trim();
+    } catch (e) {}
+
+    // Fallback a cookie
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)nfc_active_album=([^;]+)/);
+      if (match) return decodeURIComponent(match[1]).trim();
+    } catch (e) {}
+
+    return '';
   },
 
   setToken(token) {
+    if (!token) {
+      this.clearToken();
+      return;
+    }
+    const clean = token.trim();
     try {
-      if (token) {
-        localStorage.setItem(ACTIVE_ALBUM_TOKEN_KEY, token.trim());
-      } else {
-        localStorage.removeItem(ACTIVE_ALBUM_TOKEN_KEY);
-      }
+      localStorage.setItem(ACTIVE_ALBUM_TOKEN_KEY, clean);
     } catch (e) {
       console.warn('Error al guardar token de álbum en localStorage:', e);
     }
+    try {
+      document.cookie = `nfc_active_album=${encodeURIComponent(clean)}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (e) {}
   },
 
   clearToken() {
     try {
       localStorage.removeItem(ACTIVE_ALBUM_TOKEN_KEY);
+    } catch (e) {}
+    try {
+      document.cookie = 'nfc_active_album=; path=/; max-age=0; SameSite=Lax';
     } catch (e) {}
   }
 };
@@ -383,9 +405,8 @@ export const extractAccessKeyFromUrl = () => {
       return cleanHash.slice(6).trim();
     }
 
-    // 2e. UUID directo o clave en el hash
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(cleanHash.trim())) {
+    // 2e. Token directo en el hash (si no es home ni vacío)
+    if (cleanHash.length > 5 && cleanHash !== 'home') {
       return cleanHash.trim();
     }
   } catch (e) {
@@ -397,27 +418,19 @@ export const extractAccessKeyFromUrl = () => {
 
 export const clearUrlTokens = () => {
   try {
-    const url = new URL(window.location.href);
-    let changed = false;
-
-    if (url.hash) {
-      url.hash = '';
-      changed = true;
-    }
-
-    if (url.searchParams.has('album')) {
-      url.searchParams.delete('album');
-      changed = true;
-    }
-
-    if (changed) {
-      const cleanPath = url.pathname + (url.search ? url.search : '');
-      window.history.replaceState(null, '', cleanPath);
+    if (window.location.hash || (window.location.search && window.location.search.includes('album='))) {
+      let cleanPath = window.location.pathname || '/';
+      if (window.location.search && window.location.search.includes('album=')) {
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.delete('album');
+        const remaining = searchParams.toString();
+        cleanPath = cleanPath + (remaining ? '?' + remaining : '');
+      }
+      window.history.replaceState(null, document.title, cleanPath);
     }
   } catch (e) {
-    if (window.location.hash || window.location.search.includes('album=')) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
+    console.error('Error al limpiar URL:', e);
   }
 };
+
 

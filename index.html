@@ -8,6 +8,58 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var hash = window.location.hash || '';
+          var search = window.location.search || '';
+          var token = '';
+
+          if (search) {
+            var sp = new URLSearchParams(search);
+            if (sp.has('album')) token = sp.get('album');
+          }
+
+          if (!token && hash) {
+            var raw = hash.replace(/^#\/?/, '').trim();
+            if (raw.indexOf('album=') === 0 || raw.indexOf('?album=') === 0) {
+              var hp = new URLSearchParams(raw.replace(/^\?/, ''));
+              token = hp.get('album');
+            } else if (raw.indexOf('album-') === 0) {
+              token = raw.substring(6);
+            } else if (raw.indexOf('album/') === 0) {
+              token = raw.substring(6);
+            } else if (raw.length > 5 && raw !== 'home') {
+              token = raw;
+            }
+          }
+
+          if (token) {
+            token = token.trim();
+            try {
+              localStorage.setItem('nfc_active_album_access_key', token);
+            } catch (le) {}
+            try {
+              document.cookie = 'nfc_active_album=' + encodeURIComponent(token) + '; path=/; max-age=31536000; SameSite=Lax';
+            } catch (ce) {}
+          }
+
+          // Limpiar la URL de inmediato (quitar hash y param album de la barra de direcciones)
+          if (window.location.hash || (search && search.indexOf('album=') !== -1)) {
+            var cleanPath = window.location.pathname || '/';
+            if (search && search.indexOf('album=') !== -1) {
+              var sp2 = new URLSearchParams(search);
+              sp2.delete('album');
+              var remainingSearch = sp2.toString();
+              cleanPath = cleanPath + (remainingSearch ? '?' + remainingSearch : '');
+            }
+            window.history.replaceState(null, document.title, cleanPath);
+          }
+        } catch (e) {
+          console.error('Error pre-procesando URL:', e);
+        }
+      })();
+    </script>
   </head>
   <body class="bg-gradient-to-br from-amber-50/80 via-rose-50/60 to-sky-50/70 text-slate-800 antialiased min-h-screen selection:bg-rose-500 selection:text-white">
     <div id="root"></div>
