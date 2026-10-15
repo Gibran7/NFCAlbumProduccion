@@ -41,7 +41,14 @@ export const AlbumService = {
 
   async getAlbumByAccessKey(accessKey) {
     if (!supabase) {
-      return LocalStorageManager.getAlbums().find(album => album.access_key === accessKey) || null;
+      const cleanKey = accessKey.startsWith('album-') ? accessKey.slice(6) : accessKey;
+      return LocalStorageManager.getAlbums().find(album =>
+        album.access_key === accessKey ||
+        album.access_key === cleanKey ||
+        album.id === accessKey ||
+        album.id === `album-${accessKey}` ||
+        `album-${album.access_key}` === accessKey
+      ) || null;
     }
     const { data, error } = await supabase.rpc('album_nfc_lookup', {
       p_access_key: accessKey

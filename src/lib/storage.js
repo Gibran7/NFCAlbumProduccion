@@ -312,3 +312,112 @@ export const LocalStorageManager = {
     } catch (e) {}
   }
 };
+
+const ACTIVE_ALBUM_TOKEN_KEY = 'nfc_active_album_access_key';
+
+export const ActiveAlbumSession = {
+  getToken() {
+    try {
+      return localStorage.getItem(ACTIVE_ALBUM_TOKEN_KEY) || '';
+    } catch (e) {
+      return '';
+    }
+  },
+
+  setToken(token) {
+    try {
+      if (token) {
+        localStorage.setItem(ACTIVE_ALBUM_TOKEN_KEY, token.trim());
+      } else {
+        localStorage.removeItem(ACTIVE_ALBUM_TOKEN_KEY);
+      }
+    } catch (e) {
+      console.warn('Error al guardar token de álbum en localStorage:', e);
+    }
+  },
+
+  clearToken() {
+    try {
+      localStorage.removeItem(ACTIVE_ALBUM_TOKEN_KEY);
+    } catch (e) {}
+  }
+};
+
+export const extractAccessKeyFromUrl = () => {
+  try {
+    // 1. Revisar query parameter: ?album=...
+    if (window.location.search) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const fromSearch = searchParams.get('album');
+      if (fromSearch) return fromSearch.trim();
+    }
+
+    // 2. Revisar hash: #album=..., #album-..., #album/... o #...
+    const rawHash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+
+    if (!rawHash) return '';
+
+    const cleanHash = rawHash.startsWith('?') ? rawHash.slice(1) : rawHash;
+
+    // 2a. Query string en hash: #album=xyz o #?album=xyz
+    try {
+      const hashParams = new URLSearchParams(cleanHash);
+      const fromHashParams = hashParams.get('album');
+      if (fromHashParams) return fromHashParams.trim();
+    } catch (e) {}
+
+    // 2b. Formato #album=xyz
+    if (cleanHash.startsWith('album=')) {
+      return cleanHash.slice(6).trim();
+    }
+
+    // 2c. Formato #album-xyz
+    if (cleanHash.startsWith('album-')) {
+      return cleanHash.slice(6).trim();
+    }
+
+    // 2d. Formato #album/xyz
+    if (cleanHash.startsWith('album/')) {
+      return cleanHash.slice(6).trim();
+    }
+
+    // 2e. UUID directo o clave en el hash
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(cleanHash.trim())) {
+      return cleanHash.trim();
+    }
+  } catch (e) {
+    console.warn('Error extrayendo clave de acceso de URL:', e);
+  }
+
+  return '';
+};
+
+export const clearUrlTokens = () => {
+  try {
+    const url = new URL(window.location.href);
+    let changed = false;
+
+    if (url.hash) {
+      url.hash = '';
+      changed = true;
+    }
+
+    if (url.searchParams.has('album')) {
+      url.searchParams.delete('album');
+      changed = true;
+    }
+
+    if (changed) {
+      const cleanPath = url.pathname + (url.search ? url.search : '');
+      window.history.replaceState(null, '', cleanPath);
+    }
+  } catch (e) {
+    if (window.location.hash || window.location.search.includes('album=')) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+};
+

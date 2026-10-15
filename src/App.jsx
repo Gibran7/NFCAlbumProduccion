@@ -5,11 +5,7 @@ import { AlbumDetailView } from './views/AlbumDetailView';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AlbumActivationView } from './components/AlbumActivationView';
 import { AlbumService, PhotoService, isSupabaseConfigured, supabase } from './lib/supabase';
-
-const getAccessKeyFromHash = () => {
-  const hash = window.location.hash.slice(1);
-  return new URLSearchParams(hash).get('album') || '';
-};
+import { ActiveAlbumSession, extractAccessKeyFromUrl, clearUrlTokens } from './lib/storage';
 
 export default function App() {
   const [albums, setAlbums] = useState([]);
@@ -38,7 +34,8 @@ export default function App() {
       if (!isMounted) return;
       updateAccess(session);
       if (event === 'SIGNED_OUT') {
-        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+        clearUrlTokens();
+        ActiveAlbumSession.clearToken();
         setCurrentAlbum(null);
         setAccessKey('');
         setRouteError('');
@@ -93,29 +90,49 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    const loadAlbumFromLink = async () => {
-      const key = getAccessKeyFromHash();
+    const loadAlbumSession = async () => {
       setRouteError('');
-      setAccessKey(key);
-      setCurrentAlbum(null);
 
-      if (!key) {
+      // 1. Extraer si viene en URL (hash o parámetros de búsqueda)
+      const urlKey = extractAccessKeyFromUrl();
+      let keyToLoad = urlKey;
+
+      if (urlKey) {
+        // Guardar token en localStorage
+        ActiveAlbumSession.setToken(urlKey);
+        // Limpiar inmediatamente la URL usando replaceState para no mostrar el ID
+        clearUrlTokens();
+      } else {
+        // Si no viene en la URL, leer automáticamente desde localStorage
+        keyToLoad = ActiveAlbumSession.getToken();
+      }
+
+      setAccessKey(keyToLoad || '');
+
+      if (!keyToLoad) {
+        setCurrentAlbum(null);
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
       try {
-        const album = await AlbumService.getAlbumByAccessKey(key);
+        const album = await AlbumService.getAlbumByAccessKey(keyToLoad);
         if (!isMounted) return;
         if (!album) {
+          // Token no válido o álbum inexistente, limpiar de localStorage
+          ActiveAlbumSession.clearToken();
+          setAccessKey('');
+          setCurrentAlbum(null);
           setRouteError('No encontramos un álbum asociado a este enlace NFC.');
           return;
         }
 
         setCurrentAlbum(album);
+        ActiveAlbumSession.setToken(keyToLoad);
+
         if (album.customer_name) {
-          const photos = await PhotoService.getPhotos(album.id, key);
+          const photos = await PhotoService.getPhotos(album.id, keyToLoad);
           if (isMounted) setPhotosByAlbum(prev => ({ ...prev, [album.id]: photos }));
         } else {
           setPhotosByAlbum(prev => ({ ...prev, [album.id]: [] }));
@@ -128,25 +145,50 @@ export default function App() {
       }
     };
 
-    loadAlbumFromLink();
-    window.addEventListener('hashchange', loadAlbumFromLink);
+    loadAlbumSession();
+    window.addEventListener('hashchange', loadAlbumSession);
+    window.addEventListener('popstate', loadAlbumSession);
+
     return () => {
       isMounted = false;
-      window.removeEventListener('hashchange', loadAlbumFromLink);
+      window.removeEventListener('hashchange', loadAlbumSession);
+      window.removeEventListener('popstate', loadAlbumSession);
     };
   }, []);
 
   const navigateHome = () => {
+    ActiveAlbumSession.clearToken();
     setCurrentAlbum(null);
     setAccessKey('');
-    window.location.hash = '';
+    setRouteError('');
+    clearUrlTokens();
+  };
+
+  const handleSelectAlbum = async (album) => {
+    const key = album.access_key || album.id;
+    ActiveAlbumSession.setToken(key);
+    setAccessKey(key);
+    setCurrentAlbum(album);
+    clearUrlTokens();
+
+    if (!photosByAlbum[album.id] || photosByAlbum[album.id].length === 0) {
+      try {
+        const photos = await PhotoService.getPhotos(album.id, key);
+        setPhotosByAlbum(prev => ({ ...prev, [album.id]: photos }));
+      } catch (e) {
+        console.warn('Error al cargar fotos del álbum seleccionado:', e);
+      }
+    }
   };
 
   const handleCreateAlbum = async (albumData) => {
     const newAlbum = await AlbumService.createAlbum(albumData);
     setAlbums(prev => [newAlbum, ...prev]);
     setPhotosByAlbum(prev => ({ ...prev, [newAlbum.id]: [] }));
-    window.location.hash = `album=${newAlbum.access_key}`;
+    ActiveAlbumSession.setToken(newAlbum.access_key);
+    setAccessKey(newAlbum.access_key);
+    setCurrentAlbum(newAlbum);
+    clearUrlTokens();
     return newAlbum;
   };
 
@@ -256,9 +298,7 @@ export default function App() {
           <HomeView
             albums={albums}
             photosByAlbum={photosByAlbum}
-            onSelectAlbum={(album) => {
-              window.location.hash = `album=${album.access_key}`;
-            }}
+            onSelectAlbum={handleSelectAlbum}
             onCreateAlbum={handleCreateAlbum}
             onDeleteAlbum={handleDeleteAlbum}
             isLoading={false}
