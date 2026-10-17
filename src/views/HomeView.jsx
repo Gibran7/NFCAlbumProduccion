@@ -111,6 +111,7 @@ export const HomeView = ({ albums, photosByAlbum, onSelectAlbum, onCreateAlbum, 
       {/* Modals */}
       {showCreateModal && canManage && (
         <AlbumModal
+          isAdmin={canManage}
           onClose={() => setShowCreateModal(false)}
           onSave={async (albumData) => {
             await onCreateAlbum(albumData);

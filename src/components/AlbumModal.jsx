@@ -11,7 +11,7 @@ const COVER_PRESETS = [
   '/covers/cover-5.jpg',
 ];
 
-export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
+export const AlbumModal = ({ albumToEdit = null, onClose, onSave, isAdmin = false }) => {
   const [title, setTitle] = useState(albumToEdit ? albumToEdit.title : '');
   const [emoji, setEmoji] = useState(albumToEdit ? albumToEdit.emoji : '📸');
   const [coverUrl, setCoverUrl] = useState(albumToEdit ? albumToEdit.cover_url || '' : COVER_PRESETS[0]);
@@ -168,53 +168,55 @@ export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Selector de Capacidad de Fotos: 30, 50 y 80 fotos */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Capacidad de Fotos
-              </label>
-              <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                {maxPhotos} fotografías
-              </span>
-            </div>
+          {/* Selector de Capacidad de Fotos: 30, 50 y 80 fotos (Visible solo para el administrador) */}
+          {isAdmin && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Capacidad de Fotos
+                </label>
+                <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+                  {maxPhotos} fotografías
+                </span>
+              </div>
 
-            <div className="grid grid-cols-3 gap-2.5">
-              {[
-                { count: 30, badge: 'Básico', desc: '~4.5 MB' },
-                { count: 50, badge: 'Estándar', desc: '~7.5 MB' },
-                { count: 80, badge: 'Recomendado', desc: '~12 MB' }
-              ].map((opt) => (
-                <button
-                  key={opt.count}
-                  type="button"
-                  onClick={() => setMaxPhotos(opt.count)}
-                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
-                    maxPhotos === opt.count
-                      ? 'border-rose-500 bg-rose-50/90 text-rose-700 shadow-md shadow-rose-500/10 ring-2 ring-rose-500/20'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <span className="text-xl font-black">{opt.count}</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    fotos
-                  </span>
-                  <span
-                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+              <div className="grid grid-cols-3 gap-2.5">
+                {[
+                  { count: 30, badge: 'Básico', desc: '~4.5 MB' },
+                  { count: 50, badge: 'Estándar', desc: '~7.5 MB' },
+                  { count: 80, badge: 'Recomendado', desc: '~12 MB' }
+                ].map((opt) => (
+                  <button
+                    key={opt.count}
+                    type="button"
+                    onClick={() => setMaxPhotos(opt.count)}
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
                       maxPhotos === opt.count
-                        ? 'bg-rose-500 text-white'
-                        : 'bg-slate-200 text-slate-600'
+                        ? 'border-rose-500 bg-rose-50/90 text-rose-700 shadow-md shadow-rose-500/10 ring-2 ring-rose-500/20'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
                     }`}
                   >
-                    {opt.badge}
-                  </span>
-                </button>
-              ))}
+                    <span className="text-xl font-black">{opt.count}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      fotos
+                    </span>
+                    <span
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                        maxPhotos === opt.count
+                          ? 'bg-rose-500 text-white'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {opt.badge}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium mt-1.5">
+                Límite de fotografías que se podrán almacenar en este álbum.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-500 font-medium mt-1.5">
-              Límite de fotografías que se podrán almacenar en este álbum.
-            </p>
-          </div>
+          )}
 
           {submitError && (
             <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">

@@ -236,6 +236,7 @@ export const AlbumDetailView = ({
       {showEditModal && (
         <AlbumModal
           albumToEdit={album}
+          isAdmin={canManage}
           onClose={() => setShowEditModal(false)}
           onSave={(updates) => onUpdateAlbum(album.id, updates)}
         />
