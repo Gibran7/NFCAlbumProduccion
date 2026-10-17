@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.albums (
 ALTER TABLE public.albums
   ADD COLUMN IF NOT EXISTS access_key TEXT NOT NULL DEFAULT gen_random_uuid()::text,
   ADD COLUMN IF NOT EXISTS customer_name TEXT,
+  ADD COLUMN IF NOT EXISTS max_photos INT NOT NULL DEFAULT 80,
   ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;
 
 UPDATE public.albums
@@ -201,6 +202,7 @@ SET search_path = ''
 AS $$
 DECLARE
   target_album_id UUID;
+  target_max_photos INT;
   current_photo_count BIGINT;
   inserted_photo public.photos%ROWTYPE;
 BEGIN
@@ -213,7 +215,7 @@ BEGIN
     RAISE EXCEPTION 'Ruta de almacenamiento inválida.';
   END IF;
 
-  SELECT a.id INTO target_album_id
+  SELECT a.id, coalesce(a.max_photos, 80) INTO target_album_id, target_max_photos
   FROM public.albums AS a
   WHERE a.access_key = p_access_key
     AND a.customer_name IS NOT NULL
@@ -224,8 +226,8 @@ BEGIN
   SELECT count(*) INTO current_photo_count
   FROM public.photos AS p
   WHERE p.album_id = target_album_id;
-  IF current_photo_count >= 80 THEN
-    RAISE EXCEPTION 'Este álbum ya alcanzó el límite de 80 fotos.';
+  IF current_photo_count >= target_max_photos THEN
+    RAISE EXCEPTION 'Este álbum ya alcanzó su límite de % fotos.', target_max_photos;
   END IF;
   IF NOT EXISTS (
     SELECT 1
@@ -266,6 +268,7 @@ SET search_path = ''
 AS $$
 DECLARE
   target_album_id UUID;
+  target_max_photos INT;
   stored_object_count BIGINT;
 BEGIN
   IF split_part(p_object_name, '/', 2) = ''
@@ -273,7 +276,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  SELECT a.id INTO target_album_id
+  SELECT a.id, coalesce(a.max_photos, 80) INTO target_album_id, target_max_photos
   FROM public.albums AS a
   WHERE a.access_key = split_part(p_object_name, '/', 1)
     AND a.customer_name IS NOT NULL
@@ -287,7 +290,7 @@ BEGIN
   WHERE o.bucket_id = 'album-photos'
     AND split_part(o.name, '/', 1) = split_part(p_object_name, '/', 1);
 
-  RETURN stored_object_count < 80;
+  RETURN stored_object_count < target_max_photos;
 END;
 $$;
 

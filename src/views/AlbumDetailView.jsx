@@ -24,6 +24,8 @@ export const AlbumDetailView = ({
 
   if (!album) return null;
 
+  const maxPhotos = album.max_photos || 80;
+
   const formatDate = (isoString) => {
     try {
       return new Date(isoString).toLocaleDateString('es-ES', {
@@ -163,7 +165,7 @@ export const AlbumDetailView = ({
             </div>
 
             {/* Quick Camera Action Button */}
-            {canUpload && photos.length < 80 && (
+            {canUpload && photos.length < maxPhotos && (
               <button
                 onClick={() => setShowLiveCamera(true)}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 hover:from-rose-600 hover:to-pink-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-xl shadow-rose-500/25 transition active:scale-95"
@@ -177,17 +179,18 @@ export const AlbumDetailView = ({
       </div>
 
       {/* Photo Uploader Component */}
-      {canUpload && photos.length < 80 && (
+      {canUpload && photos.length < maxPhotos && (
         <PhotoUploader
           albumTitle={album.title}
           photoCount={photos.length}
+          maxPhotos={maxPhotos}
           onUploadFiles={(file) => onUploadPhoto(album.id, file)}
           onOpenLiveCamera={() => setShowLiveCamera(true)}
         />
       )}
-      {canUpload && photos.length >= 80 && (
+      {canUpload && photos.length >= maxPhotos && (
         <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
-          Este álbum alcanzó su límite de 80 fotos.
+          Este álbum alcanzó su límite de {maxPhotos} fotos.
         </p>
       )}
 
@@ -206,7 +209,7 @@ export const AlbumDetailView = ({
       </div>
 
       {/* Modals */}
-      {showLiveCamera && canUpload && photos.length < 80 && (
+      {showLiveCamera && canUpload && photos.length < maxPhotos && (
         <CameraModal
           albumId={album.id}
           albumTitle={album.title}

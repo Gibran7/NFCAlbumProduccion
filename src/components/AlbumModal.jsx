@@ -17,6 +17,7 @@ export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
   const [coverUrl, setCoverUrl] = useState(albumToEdit ? albumToEdit.cover_url || '' : COVER_PRESETS[0]);
   const [coverFile, setCoverFile] = useState(null);
   const [previewCover, setPreviewCover] = useState(albumToEdit ? albumToEdit.cover_url || COVER_PRESETS[0] : COVER_PRESETS[0]);
+  const [maxPhotos, setMaxPhotos] = useState(albumToEdit?.max_photos || 80);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -48,7 +49,8 @@ export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
       await onSave({
         title: title.trim(),
         emoji,
-        coverUrl: finalCoverUrl
+        coverUrl: finalCoverUrl,
+        maxPhotos: Number(maxPhotos) || 80
       });
       onClose();
     } catch (err) {
@@ -60,7 +62,7 @@ export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 overflow-hidden">
+      <div className="relative w-full max-w-lg max-h-[92vh] flex flex-col bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -78,7 +80,7 @@ export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
           {albumToEdit ? 'Personalizar Álbum' : 'Crear un Nuevo Álbum'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 overflow-y-auto pr-1">
           {/* Title Input */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -164,6 +166,54 @@ export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Selector de Capacidad de Fotos: 30, 50 y 80 fotos */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Capacidad de Fotos
+              </label>
+              <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+                {maxPhotos} fotografías
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5">
+              {[
+                { count: 30, badge: 'Básico', desc: '~4.5 MB' },
+                { count: 50, badge: 'Estándar', desc: '~7.5 MB' },
+                { count: 80, badge: 'Recomendado', desc: '~12 MB' }
+              ].map((opt) => (
+                <button
+                  key={opt.count}
+                  type="button"
+                  onClick={() => setMaxPhotos(opt.count)}
+                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                    maxPhotos === opt.count
+                      ? 'border-rose-500 bg-rose-50/90 text-rose-700 shadow-md shadow-rose-500/10 ring-2 ring-rose-500/20'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  <span className="text-xl font-black">{opt.count}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    fotos
+                  </span>
+                  <span
+                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                      maxPhotos === opt.count
+                        ? 'bg-rose-500 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {opt.badge}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium mt-1.5">
+              Límite de fotografías que se podrán almacenar en este álbum.
+            </p>
           </div>
 
           {submitError && (

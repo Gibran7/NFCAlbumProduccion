@@ -76,7 +76,7 @@ export const AlbumService = {
           p_access_key: accessKey
         });
         if (!error && data?.[0]) {
-          return { ...data[0], access_key: accessKey };
+          return { max_photos: 80, ...data[0], access_key: accessKey };
         }
 
         if (cleanKey !== accessKey) {
@@ -84,7 +84,7 @@ export const AlbumService = {
             p_access_key: cleanKey
           });
           if (!cleanError && cleanData?.[0]) {
-            return { ...cleanData[0], access_key: cleanKey };
+            return { max_photos: 80, ...cleanData[0], access_key: cleanKey };
           }
         }
       } catch (err) {
@@ -131,11 +131,13 @@ export const AlbumService = {
     });
   },
 
-  async createAlbum({ title, emoji, coverUrl }) {
+  async createAlbum({ title, emoji, coverUrl, maxPhotos = 80 }) {
+    const limit = [30, 50, 80].includes(Number(maxPhotos)) ? Number(maxPhotos) : 80;
     const albumData = {
       title,
       emoji: emoji || '📸',
       cover_url: coverUrl || null,
+      max_photos: limit,
       created_at: new Date().toISOString()
     };
 
@@ -148,21 +150,57 @@ export const AlbumService = {
       });
     }
 
-    const { data, error } = await supabase
-      .from('albums')
-      .insert([albumData])
-      .select('id, title, emoji, cover_url, access_key, customer_name, activated_at, created_at, updated_at')
-      .single();
-    if (error) throw error;
-    if (!data.access_key) {
-      throw new Error('Supabase creó el álbum, pero no devolvió su token NFC.');
+    try {
+      const { data, error } = await supabase
+        .from('albums')
+        .insert([albumData])
+        .select('id, title, emoji, cover_url, access_key, max_photos, customer_name, activated_at, created_at, updated_at')
+        .single();
+
+      if (!error && data?.access_key) {
+        LocalStorageManager.saveAlbum(data);
+        return data;
+      }
+
+      if (error && error.message && error.message.includes('max_photos')) {
+        const { max_photos, ...fallbackData } = albumData;
+        const { data: fbData, error: fbError } = await supabase
+          .from('albums')
+          .insert([fallbackData])
+          .select('id, title, emoji, cover_url, access_key, customer_name, activated_at, created_at, updated_at')
+          .single();
+        if (fbError) throw fbError;
+        const finalAlbum = { ...fbData, max_photos: limit };
+        LocalStorageManager.saveAlbum(finalAlbum);
+        return finalAlbum;
+      }
+      if (error) throw error;
+      if (!data?.access_key) {
+        throw new Error('Supabase creó el álbum, pero no devolvió su token NFC.');
+      }
+      return data;
+    } catch (insertErr) {
+      if (insertErr?.message?.includes('max_photos')) {
+        const { max_photos, ...fallbackData } = albumData;
+        const { data: fbData, error: fbError } = await supabase
+          .from('albums')
+          .insert([fallbackData])
+          .select('id, title, emoji, cover_url, access_key, customer_name, activated_at, created_at, updated_at')
+          .single();
+        if (fbError) throw fbError;
+        const finalAlbum = { ...fbData, max_photos: limit };
+        LocalStorageManager.saveAlbum(finalAlbum);
+        return finalAlbum;
+      }
+      throw insertErr;
     }
-    LocalStorageManager.saveAlbum(data);
-    return data;
   },
 
-  async updateAlbum(id, { title, emoji, coverUrl }, accessKey = '') {
+  async updateAlbum(id, { title, emoji, coverUrl, maxPhotos }, accessKey = '') {
     const updates = { title, emoji, cover_url: coverUrl };
+    if (maxPhotos && [30, 50, 80].includes(Number(maxPhotos))) {
+      updates.max_photos = Number(maxPhotos);
+    }
 
     if (supabase) {
       try {
@@ -175,7 +213,7 @@ export const AlbumService = {
             p_cover_url: coverUrl
           });
           if (!error && data?.[0]) {
-            const updated = data[0];
+            const updated = { ...data[0], ...(updates.max_photos ? { max_photos: updates.max_photos } : {}) };
             LocalStorageManager.saveAlbum(updated);
             return updated;
           }
@@ -190,6 +228,20 @@ export const AlbumService = {
         if (!error && data) {
           LocalStorageManager.saveAlbum(data);
           return data;
+        }
+        if (error && error.message && error.message.includes('max_photos')) {
+          const { max_photos, ...fallbackUpdates } = updates;
+          const { data: fbData, error: fbError } = await supabase
+            .from('albums')
+            .update(fallbackUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+          if (!fbError && fbData) {
+            const finalUpdated = { ...fbData, ...(updates.max_photos ? { max_photos: updates.max_photos } : {}) };
+            LocalStorageManager.saveAlbum(finalUpdated);
+            return finalUpdated;
+          }
         }
       } catch (err) {
         console.warn('Error al actualizar en Supabase, guardando en local:', err);

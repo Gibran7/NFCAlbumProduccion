@@ -91,7 +91,7 @@ export const AlbumCard = ({ album, photoCount = 0, onSelect, onDelete, isAdmin =
 
           {/* Barra de estado de almacenamiento para vista de administrador */}
           {isAdmin && (() => {
-            const maxPhotos = 80;
+            const maxPhotos = album.max_photos || 80;
             const percentage = Math.min(100, Math.round((photoCount / maxPhotos) * 100));
             const estimatedMb = (photoCount * 0.15).toFixed(1);
             return (
