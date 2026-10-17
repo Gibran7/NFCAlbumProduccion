@@ -70,22 +70,66 @@ export const AlbumService = {
   async getAlbumByAccessKey(accessKey) {
     const cleanKey = accessKey.startsWith('album-') ? accessKey.slice(6) : accessKey;
 
+    const findLocalAlbum = (idOrKey) => {
+      return LocalStorageManager.getAlbums().find(a =>
+        a.access_key === accessKey ||
+        a.access_key === cleanKey ||
+        a.id === accessKey ||
+        a.id === cleanKey ||
+        a.id === `album-${accessKey}` ||
+        `album-${a.access_key}` === accessKey ||
+        (idOrKey && a.id === idOrKey)
+      );
+    };
+
     if (supabase) {
       try {
+        let albumRecord = null;
+
         const { data, error } = await supabase.rpc('album_nfc_lookup', {
           p_access_key: accessKey
         });
         if (!error && data?.[0]) {
-          return { max_photos: 80, ...data[0], access_key: accessKey };
-        }
-
-        if (cleanKey !== accessKey) {
+          albumRecord = data[0];
+        } else if (cleanKey !== accessKey) {
           const { data: cleanData, error: cleanError } = await supabase.rpc('album_nfc_lookup', {
             p_access_key: cleanKey
           });
           if (!cleanError && cleanData?.[0]) {
-            return { max_photos: 80, ...cleanData[0], access_key: cleanKey };
+            albumRecord = cleanData[0];
           }
+        }
+
+        if (albumRecord) {
+          const localMatch = findLocalAlbum(albumRecord.id);
+
+          // Intentar obtener max_photos directo de la base de datos si está disponible
+          let dbMaxPhotos = null;
+          try {
+            const { data: directAlbum } = await supabase
+              .from('albums')
+              .select('max_photos')
+              .eq('id', albumRecord.id)
+              .maybeSingle();
+            if (directAlbum?.max_photos) {
+              dbMaxPhotos = directAlbum.max_photos;
+            }
+          } catch (e) {}
+
+          const resolvedMax = Number(
+            albumRecord.max_photos ||
+            dbMaxPhotos ||
+            localMatch?.max_photos ||
+            80
+          );
+
+          const fullAlbum = {
+            ...albumRecord,
+            max_photos: resolvedMax,
+            access_key: accessKey
+          };
+          LocalStorageManager.saveAlbum(fullAlbum);
+          return fullAlbum;
         }
       } catch (err) {
         console.warn('Error en consulta de Supabase, probando almacenamiento local:', err);
@@ -93,25 +137,27 @@ export const AlbumService = {
     }
 
     // Fallback a LocalStorageManager
-    const local = LocalStorageManager.getAlbums().find(album =>
-      album.access_key === accessKey ||
-      album.access_key === cleanKey ||
-      album.id === accessKey ||
-      album.id === `album-${accessKey}` ||
-      `album-${album.access_key}` === accessKey ||
-      album.id === cleanKey
-    );
+    const local = findLocalAlbum();
     return local || null;
   },
 
   async activateAlbum(accessKey, customerName) {
+    const previousAlbum = await this.getAlbumByAccessKey(accessKey);
     if (supabase) {
       try {
         const { data, error } = await supabase.rpc('album_nfc_activate', {
           p_access_key: accessKey,
           p_customer_name: customerName.trim()
         });
-        if (!error && data?.[0]) return data[0];
+        if (!error && data?.[0]) {
+          const activated = {
+            max_photos: previousAlbum?.max_photos || 80,
+            ...data[0],
+            access_key: accessKey
+          };
+          LocalStorageManager.saveAlbum(activated);
+          return activated;
+        }
       } catch (err) {
         console.warn('Error al activar álbum en Supabase, usando local:', err);
       }
@@ -127,6 +173,7 @@ export const AlbumService = {
     return LocalStorageManager.saveAlbum({
       ...album,
       customer_name: customerName.trim(),
+      max_photos: album.max_photos || previousAlbum?.max_photos || 80,
       activated_at: new Date().toISOString()
     });
   },

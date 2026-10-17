@@ -85,7 +85,7 @@ export const AlbumCard = ({ album, photoCount = 0, onSelect, onDelete, isAdmin =
           <div className="mt-1 flex items-center space-x-2 text-xs text-slate-500 font-semibold">
             <span className="flex items-center space-x-1">
               <ImageIcon className="w-3.5 h-3.5 text-rose-500" />
-              <span>{photoCount} {photoCount === 1 ? 'foto' : 'fotos'}</span>
+              <span>{photoCount} / {album.max_photos || 80} fotos</span>
             </span>
           </div>
 

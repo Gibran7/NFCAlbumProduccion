@@ -103,6 +103,7 @@ CREATE POLICY "Administradores pueden eliminar fotos"
   ON public.photos FOR DELETE
   USING (public.album_nfc_is_admin());
 
+DROP FUNCTION IF EXISTS public.album_nfc_lookup(TEXT);
 CREATE OR REPLACE FUNCTION public.album_nfc_lookup(p_access_key TEXT)
 RETURNS TABLE (
   id UUID,
@@ -110,6 +111,7 @@ RETURNS TABLE (
   emoji TEXT,
   cover_url TEXT,
   customer_name TEXT,
+  max_photos INT,
   activated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ
 )
@@ -118,11 +120,16 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT a.id, a.title, a.emoji, a.cover_url, a.customer_name, a.activated_at, a.created_at
+  SELECT a.id, a.title, a.emoji, a.cover_url, a.customer_name, coalesce(a.max_photos, 80), a.activated_at, a.created_at
   FROM public.albums AS a
-  WHERE a.access_key = p_access_key;
+  WHERE a.access_key = p_access_key
+     OR a.access_key = replace(p_access_key, 'album-', '')
+     OR ('album-' || a.access_key) = p_access_key
+     OR a.id::text = p_access_key;
 $$;
+GRANT EXECUTE ON FUNCTION public.album_nfc_lookup(TEXT) TO anon, authenticated;
 
+DROP FUNCTION IF EXISTS public.album_nfc_activate(TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.album_nfc_activate(
   p_access_key TEXT,
   p_customer_name TEXT
@@ -133,6 +140,7 @@ RETURNS TABLE (
   emoji TEXT,
   cover_url TEXT,
   customer_name TEXT,
+  max_photos INT,
   activated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ
 )
@@ -149,15 +157,22 @@ BEGIN
 
   UPDATE public.albums AS a
   SET customer_name = clean_name, activated_at = now(), updated_at = now()
-  WHERE a.access_key = p_access_key
+  WHERE (a.access_key = p_access_key
+     OR a.access_key = replace(p_access_key, 'album-', '')
+     OR ('album-' || a.access_key) = p_access_key
+     OR a.id::text = p_access_key)
     AND a.customer_name IS NULL;
 
   RETURN QUERY
-  SELECT a.id, a.title, a.emoji, a.cover_url, a.customer_name, a.activated_at, a.created_at
+  SELECT a.id, a.title, a.emoji, a.cover_url, a.customer_name, coalesce(a.max_photos, 80), a.activated_at, a.created_at
   FROM public.albums AS a
-  WHERE a.access_key = p_access_key;
+  WHERE a.access_key = p_access_key
+     OR a.access_key = replace(p_access_key, 'album-', '')
+     OR ('album-' || a.access_key) = p_access_key
+     OR a.id::text = p_access_key;
 END;
 $$;
+GRANT EXECUTE ON FUNCTION public.album_nfc_activate(TEXT, TEXT) TO anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.album_nfc_list_photos(p_access_key TEXT)
 RETURNS TABLE (

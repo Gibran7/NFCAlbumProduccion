@@ -53,7 +53,7 @@ export const PhotoUploader = ({ albumTitle, photoCount, maxPhotos = 80, onUpload
           <h3 className="text-lg font-extrabold text-slate-900 flex items-center space-x-2">
             <span>Añadir Fotos al Álbum</span>
             <span className="text-xs bg-rose-100 text-rose-600 px-2.5 py-0.5 rounded-full font-bold">
-              {photoCount}/{maxPhotos}
+              {photoCount} / {maxPhotos} fotos
             </span>
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-0.5">

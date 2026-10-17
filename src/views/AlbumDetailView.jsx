@@ -150,9 +150,9 @@ export const AlbumDetailView = ({
                   </button>
                 </div>
                 <div className="mt-1 flex items-center space-x-3 text-xs text-rose-100 font-semibold">
-                  <span className="flex items-center space-x-1">
+                  <span className="flex items-center space-x-1.5 bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full text-white font-bold">
                     <ImageIcon className="w-3.5 h-3.5" />
-                    <span>{photos.length} {photos.length === 1 ? 'foto' : 'fotos'}</span>
+                    <span>{photos.length} / {maxPhotos} fotos</span>
                   </span>
                   <span>•</span>
                   {album.customer_name ? (
@@ -197,7 +197,12 @@ export const AlbumDetailView = ({
       {/* Photo Gallery Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-extrabold text-slate-900">Galería de Fotografías</h3>
+          <div className="flex items-center space-x-2">
+            <h3 className="text-xl font-extrabold text-slate-900">Galería de Fotografías</h3>
+            <span className="text-xs bg-rose-100 text-rose-600 px-2.5 py-0.5 rounded-full font-extrabold">
+              {photos.length} / {maxPhotos}
+            </span>
+          </div>
           <span className="text-xs text-slate-500 font-medium">Haz clic en cualquier foto para ampliar</span>
         </div>
 
