@@ -188,7 +188,8 @@ export default function App() {
   };
 
   const handleUpdateAlbum = async (albumId, updates) => {
-    const updated = await AlbumService.updateAlbum(albumId, updates);
+    const key = accessKey || currentAlbum?.access_key;
+    const updated = await AlbumService.updateAlbum(albumId, updates, key);
     setAlbums(prev => prev.map(album => (album.id === albumId ? { ...album, ...updated } : album)));
     setCurrentAlbum(prev => prev?.id === albumId ? { ...prev, ...updated } : prev);
   };
@@ -217,7 +218,8 @@ export default function App() {
   };
 
   const handleDeletePhoto = async (albumId, photoId) => {
-    await PhotoService.deletePhoto(albumId, photoId);
+    const key = accessKey || currentAlbum?.access_key;
+    await PhotoService.deletePhoto(albumId, photoId, key);
     setPhotosByAlbum(prev => ({
       ...prev,
       [albumId]: (prev[albumId] || []).filter(photo => photo.id !== photoId)

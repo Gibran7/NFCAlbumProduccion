@@ -161,19 +161,42 @@ export const AlbumService = {
     return data;
   },
 
-  async updateAlbum(id, { title, emoji, coverUrl }) {
+  async updateAlbum(id, { title, emoji, coverUrl }, accessKey = '') {
     const updates = { title, emoji, cover_url: coverUrl };
-    if (!supabase) return LocalStorageManager.saveAlbum({ id, ...updates });
 
-    const { data, error } = await supabase
-      .from('albums')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    LocalStorageManager.saveAlbum(data);
-    return data;
+    if (supabase) {
+      try {
+        const key = accessKey || (typeof window !== 'undefined' ? localStorage.getItem('nfc_active_album_access_key') : '');
+        if (key) {
+          const { data, error } = await supabase.rpc('album_nfc_update', {
+            p_access_key: key,
+            p_title: title,
+            p_emoji: emoji,
+            p_cover_url: coverUrl
+          });
+          if (!error && data?.[0]) {
+            const updated = data[0];
+            LocalStorageManager.saveAlbum(updated);
+            return updated;
+          }
+        }
+
+        const { data, error } = await supabase
+          .from('albums')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (!error && data) {
+          LocalStorageManager.saveAlbum(data);
+          return data;
+        }
+      } catch (err) {
+        console.warn('Error al actualizar en Supabase, guardando en local:', err);
+      }
+    }
+
+    return LocalStorageManager.saveAlbum({ id, ...updates });
   },
 
   async deleteAlbum(id) {
@@ -266,9 +289,21 @@ export const PhotoService = {
     });
   },
 
-  async deletePhoto(albumId, photoId) {
+  async deletePhoto(albumId, photoId, accessKey = '') {
     if (supabase) {
       try {
+        const key = accessKey || (typeof window !== 'undefined' ? localStorage.getItem('nfc_active_album_access_key') : '');
+        if (key) {
+          const { data, error } = await supabase.rpc('album_nfc_delete_photo', {
+            p_access_key: key,
+            p_photo_id: photoId
+          });
+          if (!error) {
+            await LocalStorageManager.deletePhoto(albumId, photoId);
+            return;
+          }
+        }
+
         const { data: photo, error: lookupError } = await supabase
           .from('photos')
           .select('url')

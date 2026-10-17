@@ -4,10 +4,11 @@ import { X, Sparkles, Image as ImageIcon, Smile, Upload, Check } from 'lucide-re
 const EMOJI_OPTIONS = ['🌺', '📸', '🏖️', '🎉', '💖', '🐶', '🚗', '🏔️', '🍕', '🎨', '✈️', '🎵', '⭐', '🍀'];
 
 const COVER_PRESETS = [
-  'https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=80',
+  '/covers/cover-1.jpg',
+  '/covers/cover-2.jpg',
+  '/covers/cover-3.jpg',
+  '/covers/cover-4.jpg',
+  '/covers/cover-5.jpg',
 ];
 
 export const AlbumModal = ({ albumToEdit = null, onClose, onSave }) => {

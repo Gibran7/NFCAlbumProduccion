@@ -10,7 +10,7 @@ const DEFAULT_ATLIXCO_ALBUM = {
   id: 'atlixco-default-nfc-album',
   title: 'Atlixco',
   emoji: '🌺',
-  cover_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=1200&q=80',
+  cover_url: '/covers/cover-1.jpg',
   created_at: new Date().toISOString(),
   access_key: createLocalAccessKey()
 };
@@ -19,7 +19,7 @@ const DEFAULT_CHIPIL_ALBUM = {
   id: 'e7e8f5c9-b310-40ad-8d2b-13eaa25cd5db',
   title: 'Chipil',
   emoji: '📸',
-  cover_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?auto=format&fit=crop&w=800&q=80',
+  cover_url: '/covers/cover-1.jpg',
   created_at: '2026-10-15T05:40:56.633+00:00',
   access_key: '9374d047-f42f-44a0-8f65-d524e1189ee5'
 };

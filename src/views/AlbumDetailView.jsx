@@ -82,26 +82,25 @@ export const AlbumDetailView = ({
             )}
           </button>
 
-          {canManage && (
-            <>
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-white border border-slate-200 hover:border-rose-300 text-slate-700 font-bold text-xs transition shadow-sm"
-                title="Editar portada y nombre del álbum"
-              >
-                <Edit className="w-4 h-4 text-slate-500" />
-                <span>Editar</span>
-              </button>
+          {/* Botón para que el usuario pueda editar y personalizar su álbum */}
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-white border border-slate-200 hover:border-rose-300 text-slate-700 hover:text-rose-600 font-bold text-xs transition shadow-sm"
+            title="Editar portada, nombre y emoji del álbum"
+          >
+            <Edit className="w-4 h-4 text-rose-500" />
+            <span>Editar Álbum</span>
+          </button>
 
-              <button
-                onClick={handleDeleteAlbum}
-                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 font-bold text-xs transition shadow-sm"
-                title="Eliminar este álbum"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Eliminar</span>
-              </button>
-            </>
+          {canManage && (
+            <button
+              onClick={handleDeleteAlbum}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 font-bold text-xs transition shadow-sm"
+              title="Eliminar este álbum"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Eliminar</span>
+            </button>
           )}
         </div>
       </div>
@@ -126,13 +125,26 @@ export const AlbumDetailView = ({
           {/* Banner Info Content */}
           <div className="absolute bottom-6 left-6 right-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-100 flex items-center justify-center text-4xl sm:text-5xl shadow-2xl shrink-0">
+              <div
+                onClick={() => setShowEditModal(true)}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-100 flex items-center justify-center text-4xl sm:text-5xl shadow-2xl shrink-0 cursor-pointer hover:scale-105 transition"
+                title="Editar portada y emoji del álbum"
+              >
                 {album.emoji || '📸'}
               </div>
               <div>
-                <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow">
-                  {album.title}
-                </h1>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow">
+                    {album.title}
+                  </h1>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition backdrop-blur-sm"
+                    title="Editar nombre y portada"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <div className="mt-1 flex items-center space-x-3 text-xs text-rose-100 font-semibold">
                   <span className="flex items-center space-x-1">
                     <ImageIcon className="w-3.5 h-3.5" />
@@ -187,7 +199,7 @@ export const AlbumDetailView = ({
         <PhotoGallery
           photos={photos}
           onSelectPhoto={(photo, idx) => setSelectedPhotoIndex(idx)}
-          onDeletePhoto={canManage ? (photoId) => onDeletePhoto(album.id, photoId) : undefined}
+          onDeletePhoto={onDeletePhoto ? (photoId) => onDeletePhoto(album.id, photoId) : undefined}
         />
       </div>
 
@@ -207,11 +219,11 @@ export const AlbumDetailView = ({
           currentIndex={selectedPhotoIndex}
           onClose={() => setSelectedPhotoIndex(null)}
           onNavigate={(newIdx) => setSelectedPhotoIndex(newIdx)}
-          onDelete={canManage ? (photoId) => onDeletePhoto(album.id, photoId) : undefined}
+          onDelete={onDeletePhoto ? (photoId) => onDeletePhoto(album.id, photoId) : undefined}
         />
       )}
 
-      {showEditModal && canManage && (
+      {showEditModal && (
         <AlbumModal
           albumToEdit={album}
           onClose={() => setShowEditModal(false)}

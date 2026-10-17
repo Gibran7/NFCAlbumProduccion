@@ -371,3 +371,91 @@ WITH CHECK (
 -- SET raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
 -- WHERE email = 'admin@example.com';
 -- Sign in again to obtain a JWT containing the role.
+
+CREATE OR REPLACE FUNCTION public.album_nfc_update(
+  p_access_key TEXT,
+  p_title TEXT,
+  p_emoji TEXT DEFAULT '📸',
+  p_cover_url TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  emoji TEXT,
+  cover_url TEXT,
+  customer_name TEXT,
+  activated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  clean_title TEXT;
+BEGIN
+  clean_title := trim(coalesce(p_title, ''));
+  IF clean_title = '' THEN
+    RAISE EXCEPTION 'El título del álbum no puede estar vacío.';
+  END IF;
+
+  RETURN QUERY
+  UPDATE public.albums AS a
+  SET title = clean_title,
+      emoji = coalesce(p_emoji, a.emoji),
+      cover_url = coalesce(p_cover_url, a.cover_url),
+      updated_at = now()
+  WHERE a.access_key = p_access_key
+  RETURNING a.id, a.title, a.emoji, a.cover_url, a.customer_name, a.activated_at, a.created_at, a.updated_at;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.album_nfc_update(TEXT, TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.album_nfc_delete_photo(
+  p_access_key TEXT,
+  p_photo_id UUID
+)
+RETURNS TABLE (
+  storage_path TEXT,
+  deleted BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_storage_path TEXT;
+  v_album_id UUID;
+BEGIN
+  SELECT a.id INTO v_album_id
+  FROM public.albums AS a
+  WHERE a.access_key = p_access_key;
+
+  IF v_album_id IS NULL THEN
+    RAISE EXCEPTION 'Clave de acceso de álbum inválida.';
+  END IF;
+
+  SELECT p.url INTO v_storage_path
+  FROM public.photos AS p
+  WHERE p.id = p_photo_id
+    AND p.album_id = v_album_id;
+
+  IF v_storage_path IS NULL THEN
+    RETURN QUERY SELECT NULL::TEXT, false;
+    RETURN;
+  END IF;
+
+  DELETE FROM public.photos
+  WHERE id = p_photo_id;
+
+  IF NOT (v_storage_path LIKE 'http://%' OR v_storage_path LIKE 'https://%' OR v_storage_path LIKE 'data:%') THEN
+    DELETE FROM storage.objects
+    WHERE bucket_id = 'album-photos'
+      AND name = v_storage_path;
+  END IF;
+
+  RETURN QUERY SELECT v_storage_path, true;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.album_nfc_delete_photo(TEXT, UUID) TO anon, authenticated, service_role;
