@@ -14,8 +14,12 @@ export const Navbar = ({ currentAlbum, isCloudEnabled, isAuthenticated, isAdmin,
               className="flex items-center space-x-3 group focus:outline-none"
               title="Volver al panel principal"
             >
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-rose-500/25 group-hover:scale-105 transition-all">
-                <Camera className="w-5 h-5 stroke-[2.5]" />
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-rose-500/20 group-hover:scale-105 transition-all border border-rose-100 flex items-center justify-center bg-white">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="text-left hidden xs:block">
                 <span className="font-extrabold text-base sm:text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-rose-700">
@@ -28,8 +32,12 @@ export const Navbar = ({ currentAlbum, isCloudEnabled, isAuthenticated, isAdmin,
             </button>
           ) : (
             <div className="flex items-center space-x-3 select-none">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
-                <Camera className="w-5 h-5 stroke-[2.5]" />
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-rose-500/20 border border-rose-100 flex items-center justify-center bg-white">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="text-left hidden xs:block">
                 <span className="font-extrabold text-base sm:text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-rose-700">
