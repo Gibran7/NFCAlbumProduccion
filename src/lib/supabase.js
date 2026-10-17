@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { LocalStorageManager, compressImage } from './storage';
+import { LocalStorageManager, compressImage, ActiveAlbumSession } from './storage';
 
 const FALLBACK_SUPABASE_URL = 'https://awkvnvbvgvdxwxldhshl.supabase.co';
 const FALLBACK_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3a3ZudmJ2Z3ZkeHd4bGRoc2hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyMTAyMDEsImV4cCI6MjEwNTc4NjIwMX0.g231kL1Xs7mq2XvQUZ1N5fPAhBFcgkh9RZDYlgz5iPs';
@@ -295,15 +295,26 @@ export const PhotoService = {
   async deletePhoto(albumId, photoId, accessKey = '') {
     if (supabase) {
       try {
-        const key = accessKey || (typeof window !== 'undefined' ? localStorage.getItem('nfc_active_album_access_key') : '');
-        if (key) {
+        const rawKey = accessKey || (typeof ActiveAlbumSession !== 'undefined' ? ActiveAlbumSession.getToken() : '') || (typeof window !== 'undefined' ? localStorage.getItem('nfc_active_album_access_key') : '') || '';
+        const cleanKey = rawKey.startsWith('album-') ? rawKey.slice(6) : rawKey;
+        if (cleanKey) {
           const { data, error } = await supabase.rpc('album_nfc_delete_photo', {
-            p_access_key: key,
+            p_access_key: cleanKey,
             p_photo_id: photoId
           });
           if (!error) {
             await LocalStorageManager.deletePhoto(albumId, photoId);
             return;
+          }
+          if (rawKey !== cleanKey) {
+            const { error: retryError } = await supabase.rpc('album_nfc_delete_photo', {
+              p_access_key: rawKey,
+              p_photo_id: photoId
+            });
+            if (!retryError) {
+              await LocalStorageManager.deletePhoto(albumId, photoId);
+              return;
+            }
           }
         }
 

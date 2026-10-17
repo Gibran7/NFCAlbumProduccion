@@ -49,16 +49,16 @@ export const PhotoGallery = ({ photos, onSelectPhoto, onDeletePhoto }) => {
           />
 
           {/* Hover Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-between">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 p-2.5 sm:p-3 flex flex-col justify-between pointer-events-none">
             {/* Top Delete Action */}
-            <div className="flex justify-end">
+            <div className="flex justify-end pointer-events-auto">
               {onDeletePhoto && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setPhotoToDelete(photo);
                   }}
-                  className="bg-white/90 hover:bg-rose-600 text-slate-700 hover:text-white p-2 rounded-xl backdrop-blur-md transition shadow-md"
+                  className="bg-slate-900/60 sm:bg-white/90 hover:bg-rose-600 text-white sm:text-slate-700 hover:text-white p-2 rounded-xl backdrop-blur-md transition shadow-md"
                   title="Eliminar fotografía"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
