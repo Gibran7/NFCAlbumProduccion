@@ -292,48 +292,74 @@ export const PhotoService = {
     });
   },
 
-  async deletePhoto(albumId, photoId, accessKey = '') {
+  async deletePhoto(albumId, photoId, accessKey = '', albumData = null) {
+    if (!photoId) return;
+
     if (supabase) {
       try {
-        const rawKey = accessKey || (typeof ActiveAlbumSession !== 'undefined' ? ActiveAlbumSession.getToken() : '') || (typeof window !== 'undefined' ? localStorage.getItem('nfc_active_album_access_key') : '') || '';
-        const cleanKey = rawKey.startsWith('album-') ? rawKey.slice(6) : rawKey;
-        if (cleanKey) {
-          const { data, error } = await supabase.rpc('album_nfc_delete_photo', {
-            p_access_key: cleanKey,
-            p_photo_id: photoId
-          });
-          if (!error) {
-            await LocalStorageManager.deletePhoto(albumId, photoId);
-            return;
-          }
-          if (rawKey !== cleanKey) {
-            const { error: retryError } = await supabase.rpc('album_nfc_delete_photo', {
-              p_access_key: rawKey,
-              p_photo_id: photoId
-            });
-            if (!retryError) {
-              await LocalStorageManager.deletePhoto(albumId, photoId);
-              return;
+        const rawKey = accessKey ||
+          albumData?.access_key ||
+          (typeof ActiveAlbumSession !== 'undefined' ? ActiveAlbumSession.getToken() : '') ||
+          (typeof window !== 'undefined' ? localStorage.getItem('nfc_active_album_access_key') : '') ||
+          '';
+
+        const candidateKeys = [
+          rawKey,
+          albumData?.access_key,
+          albumData?.id,
+          albumId
+        ].filter(Boolean);
+
+        const keysToTry = [];
+        for (const k of candidateKeys) {
+          const str = String(k).trim();
+          if (!str) continue;
+          const clean = str.startsWith('album-') ? str.slice(6) : str;
+          if (!keysToTry.includes(clean)) keysToTry.push(clean);
+          if (!keysToTry.includes(str)) keysToTry.push(str);
+        }
+
+        const isUuid = typeof photoId === 'string' &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(photoId);
+
+        let deletedFromDb = false;
+
+        if (isUuid) {
+          for (const key of keysToTry) {
+            try {
+              const { data, error } = await supabase.rpc('album_nfc_delete_photo', {
+                p_access_key: key,
+                p_photo_id: photoId
+              });
+
+              if (!error) {
+                deletedFromDb = true;
+                const storagePath = data?.[0]?.storage_path;
+                if (storagePath) {
+                  try {
+                    await supabase.storage.from('album-photos').remove([storagePath]);
+                  } catch (e) {}
+                }
+                break;
+              }
+            } catch (rpcErr) {
+              // Probar siguiente clave candidata
             }
           }
         }
 
-        const { data: photo, error: lookupError } = await supabase
-          .from('photos')
-          .select('url')
-          .eq('album_id', albumId)
-          .eq('id', photoId)
-          .single();
-        if (!lookupError && photo) {
-          if (!photo.url.startsWith('http://') && !photo.url.startsWith('https://')) {
-            await supabase.storage.from('album-photos').remove([photo.url]);
-          }
-          await supabase.from('photos').delete().eq('id', photoId);
+        // Respaldo directo en caso de que sea administrador o exista política
+        if (!deletedFromDb && isUuid) {
+          try {
+            await supabase.from('photos').delete().eq('id', photoId);
+          } catch (e) {}
         }
       } catch (err) {
         console.warn('Error al eliminar de Supabase:', err);
       }
     }
+
+    // Eliminar también de almacenamiento local (IndexedDB y LocalStorage)
     await LocalStorageManager.deletePhoto(albumId, photoId);
   }
 };

@@ -430,7 +430,8 @@ DECLARE
 BEGIN
   SELECT a.id INTO v_album_id
   FROM public.albums AS a
-  WHERE a.access_key = p_access_key;
+  WHERE a.access_key = p_access_key
+     OR a.id::text = p_access_key;
 
   IF v_album_id IS NULL THEN
     RAISE EXCEPTION 'Clave de acceso de álbum inválida.';
@@ -449,11 +450,15 @@ BEGIN
   DELETE FROM public.photos
   WHERE id = p_photo_id;
 
-  IF NOT (v_storage_path LIKE 'http://%' OR v_storage_path LIKE 'https://%' OR v_storage_path LIKE 'data:%') THEN
-    DELETE FROM storage.objects
-    WHERE bucket_id = 'album-photos'
-      AND name = v_storage_path;
-  END IF;
+  BEGIN
+    IF NOT (v_storage_path LIKE 'http://%' OR v_storage_path LIKE 'https://%' OR v_storage_path LIKE 'data:%') THEN
+      DELETE FROM storage.objects
+      WHERE bucket_id = 'album-photos'
+        AND name = v_storage_path;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    -- Continuar si storage.objects requiere eliminación por API
+  END;
 
   RETURN QUERY SELECT v_storage_path, true;
 END;

@@ -33,54 +33,60 @@ export const PhotoGallery = ({ photos, onSelectPhoto, onDeletePhoto }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-      {photos.map((photo, index) => (
-        <div
-          key={photo.id || index}
-          onClick={() => onSelectPhoto(photo, index)}
-          className="group relative aspect-square bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-rose-300 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/10"
-        >
-          {/* Image */}
-          <img
-            src={photo.url}
-            alt={photo.caption || `Foto ${index + 1}`}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            loading="lazy"
-          />
-
-          {/* Hover Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 p-2.5 sm:p-3 flex flex-col justify-between pointer-events-none">
-            {/* Top Delete Action */}
-            <div className="flex justify-end pointer-events-auto">
-              {onDeletePhoto && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPhotoToDelete(photo);
-                  }}
-                  className="bg-slate-900/60 sm:bg-white/90 hover:bg-rose-600 text-white sm:text-slate-700 hover:text-white p-2 rounded-xl backdrop-blur-md transition shadow-md"
-                  title="Eliminar fotografía"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+        {photos.map((photo, index) => (
+          <div
+            key={photo.id || index}
+            className="group relative aspect-square bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-rose-300 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/10"
+          >
+            {/* Clickable Image */}
+            <div
+              onClick={() => onSelectPhoto(photo, index)}
+              className="w-full h-full cursor-pointer"
+            >
+              <img
+                src={photo.url}
+                alt={photo.caption || `Foto ${index + 1}`}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                loading="lazy"
+              />
             </div>
 
-            {/* Bottom Caption & Date */}
-            <div>
+            {/* Direct Delete Button (Visible on mobile, hover on desktop) */}
+            {onDeletePhoto && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPhotoToDelete(photo);
+                }}
+                className="absolute top-2 right-2 z-20 bg-slate-900/75 hover:bg-rose-600 text-white p-2 rounded-xl backdrop-blur-md transition shadow-md touch-manipulation hover:scale-105 active:scale-95"
+                title="Eliminar fotografía"
+                aria-label="Eliminar fotografía"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Bottom Caption & Date Overlay */}
+            <div
+              onClick={() => onSelectPhoto(photo, index)}
+              className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent p-2.5 sm:p-3 pt-6 cursor-pointer opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
+            >
               {photo.caption && (
                 <p className="text-xs font-bold text-white truncate drop-shadow">
                   {photo.caption}
                 </p>
               )}
-              <div className="flex items-center space-x-1 text-[10px] text-rose-100 font-semibold mt-1">
+              <div className="flex items-center space-x-1 text-[10px] text-rose-100 font-semibold mt-0.5">
                 <Calendar className="w-3 h-3 text-rose-300" />
                 <span>{formatDate(photo.created_at)}</span>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       <DeletePhotoModal
         isOpen={Boolean(photoToDelete)}
@@ -92,6 +98,6 @@ export const PhotoGallery = ({ photos, onSelectPhoto, onDeletePhoto }) => {
           }
         }}
       />
-    </div>
+    </>
   );
 };

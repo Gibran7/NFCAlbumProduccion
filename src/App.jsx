@@ -218,8 +218,8 @@ export default function App() {
   };
 
   const handleDeletePhoto = async (albumId, photoId) => {
-    const key = accessKey || currentAlbum?.access_key;
-    await PhotoService.deletePhoto(albumId, photoId, key);
+    const key = currentAlbum?.access_key || accessKey || ActiveAlbumSession.getToken();
+    await PhotoService.deletePhoto(albumId, photoId, key, currentAlbum);
     setPhotosByAlbum(prev => ({
       ...prev,
       [albumId]: (prev[albumId] || []).filter(photo => photo.id !== photoId)
