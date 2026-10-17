@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image as ImageIcon, Calendar, Trash2 } from 'lucide-react';
+import { DeletePhotoModal } from './DeletePhotoModal';
 
 export const PhotoGallery = ({ photos, onSelectPhoto, onDeletePhoto }) => {
+  const [photoToDelete, setPhotoToDelete] = useState(null);
   if (!photos || photos.length === 0) {
     return (
       <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm">
@@ -54,7 +56,7 @@ export const PhotoGallery = ({ photos, onSelectPhoto, onDeletePhoto }) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDeletePhoto(photo.id);
+                    setPhotoToDelete(photo);
                   }}
                   className="bg-white/90 hover:bg-rose-600 text-slate-700 hover:text-white p-2 rounded-xl backdrop-blur-md transition shadow-md"
                   title="Eliminar fotografía"
@@ -79,6 +81,17 @@ export const PhotoGallery = ({ photos, onSelectPhoto, onDeletePhoto }) => {
           </div>
         </div>
       ))}
+
+      <DeletePhotoModal
+        isOpen={Boolean(photoToDelete)}
+        onClose={() => setPhotoToDelete(null)}
+        onConfirm={() => {
+          if (photoToDelete) {
+            onDeletePhoto(photoToDelete.id);
+            setPhotoToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -256,11 +256,14 @@ export const PhotoService = {
       try {
         const response = await fetch(compressedDataUrl);
         const blob = await response.blob();
-        const storagePath = `${accessKey}/${createAccessKey()}.jpg`;
+        const isWebp = blob.type === 'image/webp';
+        const extension = isWebp ? 'webp' : 'jpg';
+        const contentType = isWebp ? 'image/webp' : 'image/jpeg';
+        const storagePath = `${accessKey}/${createAccessKey()}.${extension}`;
         const { error: uploadError } = await supabase.storage
           .from('album-photos')
           .upload(storagePath, blob, {
-            contentType: 'image/jpeg',
+            contentType,
             upsert: false
           });
         if (uploadError) throw uploadError;

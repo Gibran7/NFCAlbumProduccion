@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Camera, Image as ImageIcon, ArrowRight, Trash2, Sparkles, Copy, Check } from 'lucide-react';
+import { Camera, Image as ImageIcon, ArrowRight, Trash2, Sparkles, Copy, Check, HardDrive } from 'lucide-react';
 
-export const AlbumCard = ({ album, photoCount = 0, onSelect, onDelete }) => {
+export const AlbumCard = ({ album, photoCount = 0, onSelect, onDelete, isAdmin = false }) => {
   const [copied, setCopied] = useState(false);
   const defaultBg = "bg-gradient-to-br from-rose-100 via-pink-50 to-amber-100";
 
@@ -88,9 +88,54 @@ export const AlbumCard = ({ album, photoCount = 0, onSelect, onDelete }) => {
               <span>{photoCount} {photoCount === 1 ? 'foto' : 'fotos'}</span>
             </span>
           </div>
+
+          {/* Barra de estado de almacenamiento para vista de administrador */}
+          {isAdmin && (() => {
+            const maxPhotos = 80;
+            const percentage = Math.min(100, Math.round((photoCount / maxPhotos) * 100));
+            const estimatedMb = (photoCount * 0.15).toFixed(1);
+            return (
+              <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold">
+                  <span className="flex items-center space-x-1 text-slate-600">
+                    <HardDrive className="w-3 h-3 text-rose-500" />
+                    <span>Almacenamiento</span>
+                  </span>
+                  <span className={
+                    percentage >= 90
+                      ? 'text-rose-600 font-extrabold'
+                      : percentage >= 70
+                      ? 'text-amber-600 font-extrabold'
+                      : 'text-slate-600 font-semibold'
+                  }>
+                    {photoCount} / {maxPhotos} fotos ({percentage}%)
+                  </span>
+                </div>
+
+                {/* Barra de progreso visual */}
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      percentage >= 90
+                        ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                        : percentage >= 70
+                        ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                        : 'bg-gradient-to-r from-emerald-400 to-teal-500'
+                    }`}
+                    style={{ width: `${Math.max(percentage, photoCount > 0 ? 5 : 0)}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                  <span>~{estimatedMb} MB usados</span>
+                  <span>{Math.max(0, maxPhotos - photoCount)} disp.</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
-        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center space-x-2">
+        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center space-x-2">
           <button
             onClick={() => onSelect(album)}
             className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-extrabold text-xs flex items-center justify-center space-x-2 transition-all shadow-md shadow-rose-500/20 active:scale-95"

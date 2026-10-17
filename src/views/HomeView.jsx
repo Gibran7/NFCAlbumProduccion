@@ -101,6 +101,7 @@ export const HomeView = ({ albums, photosByAlbum, onSelectAlbum, onCreateAlbum, 
                 photoCount={count}
                 onSelect={onSelectAlbum}
                 onDelete={canManage ? onDeleteAlbum : undefined}
+                isAdmin={canManage}
               />
             );
           })}

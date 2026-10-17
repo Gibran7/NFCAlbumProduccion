@@ -39,24 +39,26 @@ export const Navbar = ({ currentAlbum, isCloudEnabled, isAuthenticated, isAdmin,
 
         {/* Right Action button */}
         <div className="flex items-center space-x-2.5">
-          {isCloudEnabled && isAuthenticated ? (
-            <button
-              onClick={onSignOut}
-              className="flex items-center space-x-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span>{isAdmin ? 'Salir de administración' : 'Cerrar sesión'}</span>
-            </button>
-          ) : isCloudEnabled && (
-            <button
-              onClick={onSignIn}
-              className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 transition hover:border-rose-300 hover:text-rose-600"
-            >
-              <KeyRound className="h-3.5 w-3.5 text-rose-500" />
-              <span>Administrar</span>
-            </button>
+          {isCloudEnabled && (
+            isAdmin ? (
+              <button
+                onClick={onSignOut}
+                className="flex items-center space-x-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Salir de administración</span>
+              </button>
+            ) : !currentAlbum ? (
+              <button
+                onClick={onSignIn}
+                className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 transition hover:border-rose-300 hover:text-rose-600"
+              >
+                <KeyRound className="h-3.5 w-3.5 text-rose-500" />
+                <span>Administrar</span>
+              </button>
+            ) : null
           )}
-          {currentAlbum && (
+          {currentAlbum && isAdmin && (
             <button
               onClick={onNavigateHome}
               className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-rose-300 text-xs font-bold text-slate-700 hover:text-rose-600 transition shadow-sm"

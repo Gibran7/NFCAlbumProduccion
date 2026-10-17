@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, Trash2, Calendar, Share2 } from 'lucide-react';
+import { DeletePhotoModal } from './DeletePhotoModal';
 
 export const LightboxModal = ({ photos, currentIndex, onClose, onNavigate, onDelete }) => {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   if (!photos || photos.length === 0 || currentIndex < 0 || currentIndex >= photos.length) {
     return null;
   }
@@ -69,12 +71,7 @@ export const LightboxModal = ({ photos, currentIndex, onClose, onNavigate, onDel
           </button>
           {onDelete && (
             <button
-              onClick={() => {
-                if (confirm('¿Deseas eliminar esta fotografía?')) {
-                  onDelete(currentPhoto.id);
-                  if (photos.length <= 1) onClose();
-                }
-              }}
+              onClick={() => setShowDeleteModal(true)}
               className="bg-slate-900/80 hover:bg-red-950/80 text-red-400 p-2.5 rounded-xl border border-slate-800 transition"
               title="Eliminar fotografía"
             >
@@ -131,6 +128,16 @@ export const LightboxModal = ({ photos, currentIndex, onClose, onNavigate, onDel
           <span>{formatDate(currentPhoto.created_at)}</span>
         </div>
       </div>
+
+      <DeletePhotoModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          onDelete(currentPhoto.id);
+          setShowDeleteModal(false);
+          if (photos.length <= 1) onClose();
+        }}
+      />
     </div>
   );
 };
